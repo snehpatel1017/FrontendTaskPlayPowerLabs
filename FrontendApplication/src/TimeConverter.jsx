@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import moment from 'moment-timezone'
 import Slider from '@mui/material/Slider'
+import getTheWeatherData from './WeatherApiCall';
+import { handleExport } from './ExportLoad';
 
 
 function TimeConverter({ switchToDark, switchToLight }) {
@@ -16,8 +18,7 @@ function TimeConverter({ switchToDark, switchToLight }) {
         let hour = Math.floor(e.target.value / 60);
         let minutes = (e.target.value - hour * 60);
 
-        console.log(zone);
-        console.log(hour);
+
         if (hour <= 18 && hour >= 8) {
 
             switchToLight();
@@ -47,7 +48,7 @@ function TimeConverter({ switchToDark, switchToLight }) {
         if (!present) {
             setPopupzones([...popupzones, timezones]);
             const weather = await getTheWeatherData(e.target.value);
-            console.log(weather);
+
             setTimezone([...timezones, { "name": e.target.value, "hour": -1, "minutes": -1, "weather": weather }]);
         }
 
@@ -86,29 +87,6 @@ function TimeConverter({ switchToDark, switchToLight }) {
 
         }
     }
-
-    function handleExport() {
-        const data = timezones.map(async (zone) => {
-            const zoneMoment = utctime.tz(zone['name']);
-            zone['hour'] = zoneMoment.hour();
-            zone['minutes'] = zoneMoment.minute();
-            const weather = await getTheWeatherData(zone['name']);
-            zone['weather'] = weather;
-            return zone;
-
-        })
-        const jsonData = JSON.stringify(data, null, 2);
-        const blob = new Blob([jsonData], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'data.json';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-    }
-
     const handleLoad = (event) => {
         const file = event.target.files[0];
         const reader = new FileReader();
@@ -133,18 +111,6 @@ function TimeConverter({ switchToDark, switchToLight }) {
         reader.readAsText(file);
     };
 
-    async function getTheWeatherData(zone) {
-        const url = `http://api.weatherapi.com/v1/current.json?key=99958fa96eca4489a4d102458242404&q=${zone}&aqi=no`;
-
-        const response = await fetch(url);
-        if (!response.ok) {
-            throw new Error('Network response was not ok');
-        }
-        const data = await response.json();
-        console.log(data["current"]["condition"]["text"]);
-        return data["current"]["condition"]["text"];
-
-    }
 
     return (
         <div>
@@ -175,7 +141,7 @@ function TimeConverter({ switchToDark, switchToLight }) {
                             <button type="button" onClick={handleRedo} className="text-black border-2 bg-white hover:border-black focus:outline-none focus:ring-4 focus:ring-gray-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-gray-800 dark:hover:bg-gray-700 dark:focus:ring-gray-700 dark:border-gray-700">Redo</button>
                         </div>
                         <div>
-                            <button type="button" onClick={handleExport} className="text-black border-2 bg-white hover:border-black focus:outline-none focus:ring-4 focus:ring-gray-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-gray-800 dark:hover:bg-gray-700 dark:focus:ring-gray-700 dark:border-gray-700">export</button>
+                            <button type="button" onClick={() => { handleExport(timezones, utctime) }} className="text-black border-2 bg-white hover:border-black focus:outline-none focus:ring-4 focus:ring-gray-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-gray-800 dark:hover:bg-gray-700 dark:focus:ring-gray-700 dark:border-gray-700">export</button>
                         </div>
                         <div>
                             <input type="file" onChange={handleLoad} placeholder='load'></input>
